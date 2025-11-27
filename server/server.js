@@ -61,13 +61,11 @@ server.on('connection', socket => {
 
     const player = lobby.find(p => p.socket === socket);
 
-    // 1) JOGO EM ANDAMENTO: qualquer mensagem vai para a lógica do jogo
     if (lobby.length === 2 &&  (gameActive || matchDecision)) {
       handleGameMessage(socket, texto);
       return;
     }
 
-    // 2) SE AINDA NÃO TEM PLAYER CADASTRADO (NICKNAME)
     if (!player) {
       if (lobby.length >= 2) {
         send(socket, 'Servidor já está cheio. Tente novamente mais tarde.');
@@ -93,10 +91,9 @@ server.on('connection', socket => {
         broadcast('Ambos conectados! Enviem "OK" quando estiverem prontos.');
       }
 
-      return; // importante: não cair na lógica de OK nessa mesma mensagem
+      return; 
     }
 
-    // 3) PLAYER JÁ TEM NICK, MAS JOGO AINDA NÃO COMEÇOU (FASE DO "OK")
     if (!gameActive) {
       if (lobby.length < 2) {
         send(socket, 'Aguardando o outro jogador...');
@@ -117,7 +114,6 @@ server.on('connection', socket => {
       return;
     }
 
-    // se chegar aqui, é algo fora do esperado, mas não deve acontecer
   });
 
     socket.on('end', () => {
@@ -133,7 +129,6 @@ server.on('connection', socket => {
 })
 
 function startMatch() {
-  // inicializa pool de perguntas sem repetição
   questionPool = cloneQuestions();
   resetScores();
   gameActive = true;
@@ -149,7 +144,6 @@ function resetScores() {
 }
 
 function nextRound() {
-  // se alguém já venceu, finalizamos
   const winner = lobby.find(p => p.pontos >= POINTS_TO_WIN);
   if (winner) {
     endMatch(winner);
@@ -202,31 +196,26 @@ function handleGameMessage(socket, texto) {
     roundState.ordem.push(id);
     console.log(`Resposta do jogador ${id + 1} (${player.nick}): ${letra}`);
 
-    // lógica: se primeiro a responder acertou -> pontua imediatamente
+    // se primeiro a responder acertou -> pontua imediatamente
     if (roundState.ordem.length === 1) {
-      // primeiro a responder: se acertar, pontua e encerra rodada
       if (letra === currentQuestion.correta) {
         awardPointAndReport(id);
         return;
       } else {
-        // primeiro errou -> precisa esperar o segundo (ou timeout)
         send(socket, 'Resposta recebida (incorreta). Aguardando a resposta do adversário...');
-        // continue waiting for second or timeout
         return;
       }
     }
 
-    // se chegou aqui, é porque agora temos pelo menos duas respostas (segundo respondeu)
     if (roundState.ordem.length >= 2) {
       processTwoResponses();
     }
     return;
   }
 
-  // caso esteja no estado de "pergunta de nova partida" (após anunciar vencedor)
+  // caso esteja no estado de "pergunta de nova partida" 
   const yesNo = texto.trim().toUpperCase();
   if (yesNo === 'SIM' || yesNo === 'S' || yesNo === 'NAO' || yesNo === 'N') {
-    // tratamos nova partida se estivermos aguardando decisão
     handleNewMatchDecision(player, yesNo.startsWith('S'));
     return;
   }
@@ -245,7 +234,6 @@ function processTwoResponses() {
   const correta = currentQuestion.correta;
 
   if (respPrimeiro === correta) {
-    // já teria sido tratado quando respondeu (mas tratar por garantia)
     awardPointAndReport(primeiro);
     return;
   }
